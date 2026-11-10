@@ -1,0 +1,53 @@
+name: Build GridSliceXiphos
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxext-dev \
+            libxinerama-dev libxrandr-dev libxcursor-dev libxcomposite-dev \
+            libfreetype6-dev libfontconfig1-dev libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test slice math
+        if: runner.os != 'Windows'
+        run: ctest --test-dir build --output-on-failure
+      - name: Test slice math (Windows)
+        if: runner.os == 'Windows'
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          find build -name "*.vst3" -maxdepth 6 -exec cp -r {} dist/ \;
+          find build -path "*Standalone*" -name "GridSliceXiphos*" -type f -exec cp {} dist/ \; 2>/dev/null || true
+          find build -name "*.component" -maxdepth 6 -exec cp -r {} dist/ \; 2>/dev/null || true
+          ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GridSliceXiphos-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: warn
