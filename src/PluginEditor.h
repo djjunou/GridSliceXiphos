@@ -30,6 +30,32 @@ private:
 };
 
 //==============================================================================
+// NEO Y2K / modern MONTAGEM-style look: deep-navy glass panels, neon cyan
+// and magenta gradients, chrome highlights and soft glows, matching the
+// bundled chrome-logo skin artworks.
+class Y2kLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    Y2kLookAndFeel();
+
+    void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
+                           float sliderPos, float minSliderPos, float maxSliderPos,
+                           juce::Slider::SliderStyle, juce::Slider&) override;
+    void drawComboBox (juce::Graphics&, int width, int height, bool isButtonDown,
+                       int buttonX, int buttonY, int buttonWidth, int buttonHeight,
+                       juce::ComboBox&) override;
+    void drawButtonBackground (juce::Graphics&, juce::Button&,
+                               const juce::Colour& backgroundColour,
+                               bool shouldDrawButtonAsHighlighted,
+                               bool shouldDrawButtonAsDown) override;
+    void drawToggleButton (juce::Graphics&, juce::ToggleButton&,
+                           bool shouldDrawButtonAsHighlighted,
+                           bool shouldDrawButtonAsDown) override;
+    juce::Font getComboBoxFont (juce::ComboBox&) override;
+    juce::Font getPopupMenuFont() override;
+};
+
+//==============================================================================
 class GridSliceXiphosEditor final : public juce::AudioProcessorEditor,
                                private juce::Timer
 {
@@ -44,7 +70,6 @@ private:
     void timerCallback() override;
     void chooseAndLoadSample();
     void chooseAndExport();
-    void chooseGuiImage();
     void reloadGuiImageIfNeeded();
     void updateInfoLabel();
 
@@ -53,16 +78,15 @@ private:
     using ButtonAtt = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     GridSliceXiphosProcessor& proc;
+    Y2kLookAndFeel y2kLnf;
 
     WaveformView waveform;
     juce::TextButton loadButton { "Load Sample..." };
     juce::TextButton exportButton { "Export Slices..." };
-    juce::TextButton setImageButton { "Set PNG Image..." };
-    juce::TextButton clearImageButton { "Clear Image" };
     juce::Label fileLabel, infoLabel;
 
     juce::Image bgImage;            // current GUI background (skin) image
-    juce::String loadedImageKey;    // "skinIndex|customPath" bgImage came from
+    juce::String loadedImageKey;    // skin index bgImage came from
 
     juce::Label bpmLabel, divisionLabel, offsetLabel, rootLabel,
                 fadeLabel, cutoffLabel, resonanceLabel, gainLabel,

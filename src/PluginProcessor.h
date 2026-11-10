@@ -99,11 +99,6 @@ public:
     static constexpr const char* pidImgOpacity = "imgOpacity";
     static constexpr const char* pidSkin       = "skin"; // choice, see createParameterLayout
 
-    // GUI background image (PNG/JPG) chosen by the user. Message thread
-    // only; persisted in the plugin state so FL projects remember it.
-    juce::String getGuiImagePath() const { return guiImagePath; }
-    void setGuiImagePath (const juce::String& path) { guiImagePath = path; }
-
 private:
     //==========================================================================
     struct Voice
@@ -135,8 +130,6 @@ private:
     std::atomic<int> auditionRequest { -1 };
     std::atomic<int> playingSlice { -1 };
     std::atomic<double> hostBpm { 0.0 };
-
-    juce::String guiImagePath;                  // message thread only
 
     std::array<Voice, 32> voices;               // audio thread only
     juce::dsp::StateVariableTPTFilter<float> filterL, filterR;

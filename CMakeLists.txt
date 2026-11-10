@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(GridSliceXiphos VERSION 1.0.0)
+project(GridSliceXiphos VERSION 1.2.0) # release label: Beta 1
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,10 +16,9 @@ FetchContent_MakeAvailable(JUCE)
 
 # Bundled GUI skins (embedded into the plugin binary)
 juce_add_binary_data(GridSliceXiphosSkins SOURCES
-    assets/skins/skin_xiphos.png
-    assets/skins/skin_bronze.png
-    assets/skins/skin_spartan.png
-    assets/skins/skin_marble.png
+    assets/skins/skin_chrome_sky.png
+    assets/skins/skin_chrome_bloom.png
+    assets/skins/skin_iridescent.png
 )
 
 juce_add_plugin(GridSliceXiphos
@@ -43,6 +42,12 @@ target_sources(GridSliceXiphos PRIVATE
 )
 
 target_include_directories(GridSliceXiphos PRIVATE src)
+
+# MSVC defaults to the local ANSI codepage for source files, which garbles
+# any non-ASCII text (v1.0 title mojibake). Force UTF-8 on Windows builds.
+if (MSVC)
+    target_compile_options(GridSliceXiphos PRIVATE /utf-8)
+endif()
 
 target_compile_definitions(GridSliceXiphos PUBLIC
     JUCE_WEB_BROWSER=0

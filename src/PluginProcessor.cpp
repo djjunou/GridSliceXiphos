@@ -64,12 +64,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout GridSliceXiphosProcessor::cr
         ParameterID { pidImgOpacity, 1 }, "GUI Image Opacity",
         NormalisableRange<float> (0.0f, 1.0f, 0.01f), 0.35f));
 
-    // Bundled skins are embedded in the binary (BinaryData). Index 4 is
-    // the user's own PNG file (path stored in the plugin state), 5 = none.
+    // Bundled skins are embedded in the binary (BinaryData). Index 3 = none.
+    // (v1.1: custom-PNG picker removed. Beta 1: skins replaced with the
+    // user's own chrome-logo artworks, old sword skins removed.)
     layout.add (std::make_unique<AudioParameterChoice> (
         ParameterID { pidSkin, 1 }, "Skin",
-        StringArray { "Xiphos (Default)", "Bronze Blade", "Spartan Dawn",
-                      "Marble Temple", "Custom PNG", "None" },
+        StringArray { "Chrome Bloom (Default)", "Chrome Sky",
+                      "Iridescent", "None" },
         0));
 
     return layout;
@@ -436,7 +437,7 @@ void GridSliceXiphosProcessor::getStateInformation (juce::MemoryBlock& destData)
     auto state = apvts.copyState();
     if (auto snap = currentSample())
         state.setProperty ("samplePath", snap->file.getFullPathName(), nullptr);
-    state.setProperty ("guiImagePath", guiImagePath, nullptr);
+
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -450,7 +451,6 @@ void GridSliceXiphosProcessor::setStateInformation (const void* data, int sizeIn
     if (! tree.isValid())
         return;
     apvts.replaceState (tree);
-    guiImagePath = tree.getProperty ("guiImagePath", "").toString();
     const auto path = tree.getProperty ("samplePath", "").toString();
     if (path.isNotEmpty())
     {
