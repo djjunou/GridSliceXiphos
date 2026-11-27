@@ -98,6 +98,13 @@ public:
     static constexpr const char* pidGainDb     = "gainDb";
     static constexpr const char* pidImgOpacity = "imgOpacity";
     static constexpr const char* pidSkin       = "skin"; // choice, see createParameterLayout
+    static constexpr const char* pidAttack     = "attackMs";
+    static constexpr const char* pidDecay      = "decayMs";
+    static constexpr const char* pidSustain    = "sustainPct";
+    static constexpr const char* pidRelease    = "releaseMs";
+    static constexpr const char* pidUiColor    = "uiColor";    // 0 normal, 1 P, 2 D, 3 T
+    static constexpr const char* pidBgAspect   = "bgAspect";   // 0 native, 1 4:3->16:9, 2 16:10->16:9
+    static constexpr const char* pidSensitivity = "sensitivity"; // drag sensitivity choice
 
 private:
     //==========================================================================
@@ -111,6 +118,7 @@ private:
         double endPos = 0.0;     // slice end, in file samples
         float velocity = 1.0f;
         double env = 0.0;        // current envelope level 0..1
+        int envStage = 0;        // 0 attack, 1 decay, 2 sustain, 3 release
     };
 
     void startVoice (int sliceIndex, int midiNote, float velocity,

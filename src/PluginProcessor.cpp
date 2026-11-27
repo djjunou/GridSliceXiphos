@@ -73,6 +73,38 @@ juce::AudioProcessorValueTreeState::ParameterLayout GridSliceXiphosProcessor::cr
                       "Iridescent", "None" },
         0));
 
+    // ADSR envelope (v1.3). Attack/Release of 0 ms fall back to the Fade
+    // time, which reproduces the pre-ADSR behaviour at default settings.
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { pidAttack, 1 }, "Attack (ms)",
+        NormalisableRange<float> (0.0f, 2000.0f, 0.1f), 0.0f));
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { pidDecay, 1 }, "Decay (ms)",
+        NormalisableRange<float> (0.0f, 2000.0f, 0.1f), 0.0f));
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { pidSustain, 1 }, "Sustain (%)",
+        NormalisableRange<float> (0.0f, 100.0f, 0.1f), 100.0f));
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { pidRelease, 1 }, "Release (ms)",
+        NormalisableRange<float> (0.0f, 2000.0f, 0.1f), 0.0f));
+
+    // Colour-vision friendly UI palettes: Normal / Protan (P) /
+    // Deutan (D) / Tritan (T).
+    layout.add (std::make_unique<AudioParameterChoice> (
+        ParameterID { pidUiColor, 1 }, "Colour Vision",
+        StringArray { "Normal", "P-type (Protan)", "D-type (Deutan)",
+                      "T-type (Tritan)" },
+        0));
+
+    // Skin image aspect handling.
+    layout.add (std::make_unique<AudioParameterChoice> (
+        ParameterID { pidBgAspect, 1 }, "BG Aspect",
+        StringArray { "Native", "4:3 to 16:9", "16:10 to 16:9" }, 1));
+
+    layout.add (std::make_unique<AudioParameterChoice> (
+        ParameterID { pidSensitivity, 1 }, "Drag Sensitivity",
+        StringArray { "Low", "Normal", "High", "Very High" }, 1));
+
     return layout;
 }
 
@@ -195,6 +227,7 @@ void GridSliceXiphosProcessor::startVoice (int sliceIndex, int midiNote, float v
     target->endPos = (double) sliceEndSamples (sliceIndex);
     target->velocity = velocity;
     target->env = 0.0;
+    target->envStage = 0;
     playingSlice.store (sliceIndex);
 }
 
@@ -209,9 +242,18 @@ void GridSliceXiphosProcessor::renderVoices (juce::AudioBuffer<float>& buffer,
     const auto& src = snap->buffer;
     const int srcChans = src.getNumChannels();
     const double ratio = snap->sampleRate / currentHostSampleRate; // file samples per host sample
-    const double fadeSamplesHost = juce::jmax (1.0, paramFloat (pidFadeMs) * 0.001 * currentHostSampleRate);
-    const bool gateMode = paramFloat (pidPlayMode) > 0.5f;
-    juce::ignoreUnused (gateMode); // note-off handling lives in processBlock
+
+    // ADSR times in host samples. Attack/Release of 0 fall back to the
+    // Fade time (the pre-ADSR de-click behaviour).
+    const auto msToSamples = [this] (float ms)
+    {
+        return juce::jmax (1.0, (double) ms * 0.001 * currentHostSampleRate);
+    };
+    const double fadeS  = msToSamples (paramFloat (pidFadeMs));
+    const double atkS   = paramFloat (pidAttack)  <= 0.0f ? fadeS : msToSamples (paramFloat (pidAttack));
+    const double decS   = msToSamples (paramFloat (pidDecay));
+    const double relS   = paramFloat (pidRelease) <= 0.0f ? fadeS : msToSamples (paramFloat (pidRelease));
+    const double susLvl = juce::jlimit (0.0, 1.0, (double) paramFloat (pidSustain) * 0.01);
 
     bool anyActive = false;
 
@@ -226,23 +268,43 @@ void GridSliceXiphosProcessor::renderVoices (juce::AudioBuffer<float>& buffer,
             if (! v.active)
                 break;
 
-            // Envelope: linear attack over fade, linear release at slice end / note-off.
+            // ADSR envelope. Release starts on note-off (gate mode) or
+            // when the remaining slice is shorter than the release time,
+            // so the tail stays audible inside the slice.
             const double remainHost = (v.endPos - v.pos) / ratio;
-            if (v.releasing || remainHost <= fadeSamplesHost)
-                v.env = juce::jmax (0.0, v.env - 1.0 / fadeSamplesHost);
-            else if (v.env < 1.0)
-                v.env = juce::jmin (1.0, v.env + 1.0 / fadeSamplesHost);
+            if (v.releasing || remainHost <= relS)
+                v.envStage = 3;
 
-            if ((v.releasing || remainHost <= 0.0) && v.env <= 0.0)
+            switch (v.envStage)
+            {
+                case 0: // attack
+                    v.env = juce::jmin (1.0, v.env + 1.0 / atkS);
+                    if (v.env >= 1.0)
+                        v.envStage = 1;
+                    break;
+                case 1: // decay down to the sustain level
+                    v.env = juce::jmax (susLvl, v.env - (1.0 - susLvl) / decS);
+                    if (v.env <= susLvl + 1.0e-9)
+                        v.envStage = 2;
+                    break;
+                case 2: // sustain
+                    v.env = susLvl;
+                    break;
+                default: // release
+                    v.env = juce::jmax (0.0, v.env - 1.0 / relS);
+                    break;
+            }
+
+            if (v.envStage == 3 && v.env <= 0.0)
             {
                 v.active = false;
                 break;
             }
             if (v.pos >= v.endPos)
             {
-                // Silent tail: let the fade-out finish without ever
-                // reading past the slice end (no bleed into next slice).
-                v.releasing = true;
+                // Silent tail: never read past the slice end (no bleed
+                // into the next slice); just let the envelope finish.
+                v.envStage = 3;
                 if (v.env <= 0.0)
                     v.active = false;
                 continue;

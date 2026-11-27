@@ -5,6 +5,23 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
+// UI colour palette. Index 0 is the original NEO Y2K neon scheme; 1-3 are
+// colour-vision friendly variants (Protan / Deutan / Tritan) that avoid
+// the hues each type cannot distinguish.
+struct UiPalette
+{
+    juce::Colour accent1;   // primary neon (cyan family)
+    juce::Colour accent2;   // secondary neon (magenta family)
+    juce::Colour accent3;   // mid gradient stop (violet family)
+    juce::Colour gold;      // maximalist gold accents
+    juce::Colour textMain;  // label text
+    juce::Colour waveCore;  // waveform core line
+    juce::Colour gridLine;  // slice grid lines
+};
+
+const UiPalette& uiPalette (int index);
+
+//==============================================================================
 class WaveformView final : public juce::Component,
                            public juce::FileDragAndDropTarget
 {
@@ -18,6 +35,7 @@ public:
 
     int selectedSlice = -1;
     std::function<void()> onSliceSelected;
+    UiPalette pal = uiPalette (0);
 
 private:
     void rebuildPeaks();
@@ -38,9 +56,15 @@ class Y2kLookAndFeel : public juce::LookAndFeel_V4
 public:
     Y2kLookAndFeel();
 
+    void setPalette (const UiPalette& p) { pal = p; refreshColours(); }
+    const UiPalette& palette() const { return pal; }
+
     void drawLinearSlider (juce::Graphics&, int x, int y, int width, int height,
                            float sliderPos, float minSliderPos, float maxSliderPos,
                            juce::Slider::SliderStyle, juce::Slider&) override;
+    void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
+                           float sliderPosProportional, float rotaryStartAngle,
+                           float rotaryEndAngle, juce::Slider&) override;
     void drawComboBox (juce::Graphics&, int width, int height, bool isButtonDown,
                        int buttonX, int buttonY, int buttonWidth, int buttonHeight,
                        juce::ComboBox&) override;
@@ -53,6 +77,10 @@ public:
                            bool shouldDrawButtonAsDown) override;
     juce::Font getComboBoxFont (juce::ComboBox&) override;
     juce::Font getPopupMenuFont() override;
+
+private:
+    void refreshColours();
+    UiPalette pal = uiPalette (0);
 };
 
 //==============================================================================
@@ -72,6 +100,9 @@ private:
     void chooseAndExport();
     void reloadGuiImageIfNeeded();
     void updateInfoLabel();
+    void showTutorial();
+    void applyPalette();
+    void applySensitivity();
 
     using SliderAtt = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ComboAtt  = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
@@ -83,6 +114,7 @@ private:
     WaveformView waveform;
     juce::TextButton loadButton { "Load Sample..." };
     juce::TextButton exportButton { "Export Slices..." };
+    juce::TextButton tutorialButton { "Tutorial" };
     juce::Label fileLabel, infoLabel;
 
     juce::Image bgImage;            // current GUI background (skin) image
@@ -96,10 +128,18 @@ private:
     juce::ComboBox divisionBox, playModeBox, filterBox, skinBox;
     juce::ToggleButton syncToggle { "Host" };
 
+    juce::Label attackLabel, decayLabel, sustainLabel, releaseLabel,
+                uiColorLabel, bgAspectLabel, sensitivityLabel;
+    juce::Slider attackSlider, decaySlider, sustainSlider, releaseSlider;
+    juce::ComboBox uiColorBox, bgAspectBox, sensitivityBox;
+
     std::unique_ptr<SliderAtt> bpmAtt, offsetAtt, rootAtt, fadeAtt,
                                cutoffAtt, resonanceAtt, gainAtt, imgOpacityAtt;
     std::unique_ptr<ComboAtt> divisionAtt, playModeAtt, filterAtt, skinAtt;
     std::unique_ptr<ButtonAtt> syncAtt;
+    std::unique_ptr<SliderAtt> attackAtt, decayAtt, sustainAtt, releaseAtt;
+    std::unique_ptr<ComboAtt> uiColorAtt, bgAspectAtt, sensitivityAtt;
+    int currentPaletteIndex = -1;
 
     std::unique_ptr<juce::FileChooser> chooser;
     int lastPlayingSlice = -2;
