@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(GridSliceXiphos VERSION 1.2.0) # release label: Beta 1
+project(GridSliceXiphos VERSION 1.3.0) # release label: Beta 2
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

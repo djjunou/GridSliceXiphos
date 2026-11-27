@@ -4,7 +4,7 @@
 
 # GridSliceXiphos — BPMグリッド・スライサー (VST3 / AU / Standalone)
 
-**v1.2.0 Beta 1**
+**v1.3.0 Beta 2**
 
 Slicex の不満点ひとつを解消するために作った、軽量なサンプルスライサーです。
 
@@ -44,6 +44,15 @@ Slicex の不満点ひとつを解消するために作った、軽量なサン�
   - スキン差し替えは `assets/skins/` のPNGを同名で置き換えて再ビルド（コード変更不要）
 
 ## 変更履歴
+
+### v1.3.0 Beta 2 (2026-11-27)
+- 色覚設定を追加: UIパレットを Normal / P型（Protan）/ D型（Deutan）/ T型（Tritan）に切替可能
+- ADSRノブ（Attack / Decay / Sustain / Release、ロータリー）を追加。0ms時は従来のFadeが代替
+- Tutorialボタンを追加: ポップアップで基本操作と Mid2BMS 音切りワークフローを説明
+- BG Aspect を追加: 壁紙の比率を Native / 4:3→16:9 / 16:10→16:9 から選択
+- Sensitivity を追加: スライダー・ノブのドラッグ感度（Low / Normal / High / Very High）
+- UIを過剰演出（ハイパーマキシマリズム）方向に再構築: 金色フレーム＋角ダイヤ、キラキラ粒子、
+  ハイプ帯（キャッチフレーズ反復）、金メダルシール、下部チェックリスト帯
 
 ### v1.2.0 Beta 1 (2026-11-11)
 - バージョン表記に Beta 表記を導入（GUIタイトル横に「Beta 1」表示）。今回から Beta 1
