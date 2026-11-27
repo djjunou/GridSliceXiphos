@@ -839,7 +839,7 @@ void GridSliceXiphosEditor::applySensitivity()
 void GridSliceXiphosEditor::showTutorial()
 {
     static const char* tutorialText =
-u8R"TXT(■ GridSliceXiphos とは
+R"TXT(■ GridSliceXiphos とは
 BPM と「何分音符か」を指定して、ファイル全体を等間隔に切り分けるスライサーです。
 FL 内蔵の Slicex ではできない「BPM 指定の等間隔カット」がこのプラグインの核です。
 
